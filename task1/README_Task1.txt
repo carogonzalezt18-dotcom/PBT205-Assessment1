@@ -4,18 +4,18 @@ RabbitMQ Chat Application – Prototype 1
 
 OVERVIEW
 
-This prototype implements a simple real-time chat system using Python and RabbitMQ.
+This prototype implements a real-time chat system using Python and RabbitMQ.
 
-Users can join a chat room and exchange messages in real time. The system ensures that messages are only delivered to users within the same room (message isolation).
+Users can join a chat room and exchange messages. Messages are isolated per room, ensuring only users in the same room receive them.
 
 --------------------------------------------------
 
 ARCHITECTURE
 
 - RabbitMQ is used as the message broker
-- Each chat room is implemented as a queue
-- Users publish messages to a specific room
-- Only users subscribed to that room receive the messages
+- Each chat room is implemented as a RabbitMQ exchange (fanout)
+- Each user creates a temporary queue and binds it to the room exchange
+- Messages are broadcast to all users in the same room
 
 --------------------------------------------------
 
@@ -29,51 +29,48 @@ Install dependency:
 
 pip install pika
 
+
+
 --------------------------------------------------
 
 STEP 1 – START RABBITMQ
-
-IMPORTANT:
-If RabbitMQ is already running, DO NOT run a new container.
 
 Check existing containers:
 
 docker ps -a
 
-If a RabbitMQ container already exists:
+If container exists:
 
 docker start rabbitmq
 
-If no container exists, create one:
+If not:
 
 docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
-RabbitMQ Dashboard:
-http://localhost:15672
-Username: guest
-Password: guest
+Dashboard:
+http://localhost:15672  
+Username: guest  
+Password: guest  
 
 --------------------------------------------------
 
-STEP 2 – TEST CONNECTION (OPTIONAL)
+STEP 2 – NAVIGATE TO PROJECT
 
-Run:
+IMPORTANT:
 
-python task1/test_connection.py
+Navigate into the task1 folder before running scripts:
 
-Expected output:
-
-Connected successfully to RabbitMQ!
+cd task1
 
 --------------------------------------------------
 
 STEP 3 – RUN CHAT APPLICATION
 
-Open a terminal and run:
+Run:
 
-python task1/chat_gui.py
+python chat_gui.py
 
-Repeat this command in another terminal to open multiple users.
+Open multiple terminals to simulate multiple users.
 
 --------------------------------------------------
 
@@ -82,62 +79,51 @@ STEP 4 – JOIN A CHAT ROOM
 Example:
 
 User 1:
-Username: caro
-Port: 5672
-Room: music
+Username: caro  
+Port: 5672  
+Room: music  
 
-User 2: 
-Username: Will
-Port: 5672
-Room: music
-
-Click "Join Chat" in both windows.
+User 2:
+Username: will  
+Port: 5672  
+Room: music  
 
 --------------------------------------------------
 
 STEP 5 – TEST MESSAGING
 
-- Send a message from one user
-- Verify that it appears in both chat windows
+- Send messages between users
+- Verify both users receive them in real time
 
 --------------------------------------------------
 
-STEP 6 – TEST ROOM ISOLATION (IMPORTANT)
+STEP 6 – TEST ROOM ISOLATION
 
-Open a third terminal:
+Open a third instance:
 
-python task1/chat_gui.py
+python chat_gui.py
 
 User 3:
-Username: Pablo
-Port: 5672
 Room: futbol
 
-Test:
-
-- Send messages in "music"
-- Verify they do NOT appear in "futbol"
-
-- Send messages in "futbol"
-- Verify they do NOT appear in "music"
-
-This confirms correct message isolation between rooms.
+Verify:
+- Messages from "music" do NOT appear in "futbol"
+- Messages from "futbol" do NOT appear in "music"
 
 --------------------------------------------------
 
-HOW IT WORKS
+APPLICATION BEHAVIOUR
 
-- Each room corresponds to a RabbitMQ queue
-- Messages are published to the queue of that room
-- All users connected to that room receive the messages
-- Users in different rooms do not receive those messages
+- "Send" sends a message
+- "Exit" returns to login screen
+- Closing the window (X) fully exits the application
 
 --------------------------------------------------
 
 STOP APPLICATION
 
-- Close all chat windows
-- Stop RabbitMQ container if needed:
+- Close all windows
+- Stop container if needed:
 
 Ctrl + C
 
@@ -145,23 +131,23 @@ Ctrl + C
 
 COMMON ISSUES
 
-1. Connection error
-- Ensure Docker is running
-- Ensure RabbitMQ container is active
-- Use port 5672
+1. File not found
+→ Ensure you are inside the "task1" folder
 
-2. Messages not received
-- Verify both users are in the same room
-- Check spelling of room names (case-sensitive)
+2. Connection error
+→ Check Docker is running
+→ Check RabbitMQ container is active
 
-3. Port already in use
-- RabbitMQ is already running
-- Use "docker start rabbitmq" instead of creating a new container
+3. Messages not received
+→ Ensure same room name (case-sensitive)
+
+4. GUI does not close properly
+→ Fixed in latest version (uses root.destroy)
 
 --------------------------------------------------
 
 NOTES
 
-- The GUI is the main interface for this prototype
-- Backend communication is handled via RabbitMQ queues
-- This prototype demonstrates real-time messaging and room isolation
+- GUI is the main interface
+- Backend uses RabbitMQ messaging
+- Demonstrates real-time communication and room isolation

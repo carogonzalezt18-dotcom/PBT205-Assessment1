@@ -15,8 +15,13 @@ connection = pika.BlockingConnection(
 )
 channel = connection.channel()
 
-# Declare trades queue
-channel.queue_declare(queue='trades')
+# Declare trades exchange
+channel.exchange_declare(exchange='trades', exchange_type='fanout')
+
+# Create temporary queue and bind it to the trades exchange
+result = channel.queue_declare(queue='', exclusive=True)
+queue_name = result.method.queue
+channel.queue_bind(exchange='trades', queue=queue_name)
 
 print("Trade listener is waiting for trades...")
 
@@ -41,7 +46,7 @@ def callback(ch, method, properties, body):
 channel.basic_qos(prefetch_count=1)
 
 channel.basic_consume(
-    queue='trades',
+    queue=queue_name,
     on_message_callback=callback,
     auto_ack=False
 )

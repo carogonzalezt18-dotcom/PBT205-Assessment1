@@ -4,62 +4,54 @@ RabbitMQ Contact Tracing System – Prototype 3
 
 OVERVIEW
 
-This prototype implements a contact tracing system using Python and RabbitMQ.
+This project implements a contact tracing system using Python and RabbitMQ.
 
-The system simulates a 2D environment (grid) where multiple people move randomly. When two people occupy the same position at the same time, a "contact event" is recorded.
+People move randomly in a 2D grid. When two people occupy the same position at the same time, a contact event is recorded.
 
-Users can query the system to retrieve a list of people they have come into contact with.
-
-A graphical user interface (GUI) is provided to visualize the environment and perform queries.
+Users can query a person to see who they have come into contact with. A GUI is provided to visualise the environment and perform queries.
 
 --------------------------------------------------
 
-ARCHITECTURE
+COMPONENTS
 
-The system consists of four main components:
+person.py  
+Simulates a person moving randomly and publishing positions.
 
-1. PERSON (person.py)
-   - Simulates a user moving in a 2D grid
-   - Publishes position updates to RabbitMQ
+tracker.py  
+Central system that:
+- Tracks positions
+- Detects contacts
+- Stores contact history
+- Responds to queries
 
-2. TRACKER (tracker.py)
-   - Subscribes to position updates
-   - Maintains current positions of all users
-   - Detects contact events (same position, same time)
-   - Stores contact history
-   - Responds to queries
+query.py  
+Sends a query for a person and prints their contacts.
 
-3. QUERY (query.py)
-   - Sends a request for a specific user
-   - Receives contact history from tracker
+contact_gui.py  
+Displays the grid, people positions, and allows querying contacts visually.
 
-4. GUI (contact_gui.py)
-   - Displays the environment grid
-   - Shows real-time positions
-   - Highlights collisions
-   - Allows user queries
+common.py  
+Shared RabbitMQ messaging logic.
 
 --------------------------------------------------
 
-MIDDLEWARE (RABBITMQ TOPICS)
+MIDDLEWARE
 
-The system uses three queues:
+RabbitMQ uses one topic exchange:
 
-- position
-  Receives movement updates from all users
+tracking
 
-- query
-  Receives requests for contact history
-
-- query-response
-  Sends back the results of queries
+Routing keys:
+- position → person → tracker
+- query → GUI/query → tracker
+- query-response → tracker → GUI/query
 
 --------------------------------------------------
 
 REQUIREMENTS
 
 - Python 3.x
-- Docker Desktop (running)
+- Docker Desktop running
 - pika library
 
 Install dependency:
@@ -70,150 +62,116 @@ pip install pika
 
 STEP 1 – START RABBITMQ
 
-Check existing containers:
-
 docker ps -a
 
-If RabbitMQ exists:
-
+If container exists:
 docker start rabbitmq
 
 If not:
-
 docker run -it --rm --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 
 --------------------------------------------------
 
-STEP 2 – START TRACKER
+STEP 2 – NAVIGATE TO TASK 3
 
-Open a terminal:
-
-python task3/tracker.py localhost
-
-Expected output:
-
-Tracker is running...
-Waiting for position and query messages...
+cd task3
 
 --------------------------------------------------
 
-STEP 3 – START PERSON SIMULATIONS
+STEP 3 – START TRACKER (MANDATORY FIRST)
 
-Open two separate terminals:
+Terminal 1:
 
-Example:
+python tracker.py localhost
 
-python task3/person.py localhost Ana 1 10
-python task3/person.py localhost Luis 1 10
+--------------------------------------------------
+
+STEP 4 – START PERSONS
+
+Open separate terminals:
+
+Terminal 2:
+python person.py localhost Ana 1 10
+
+Terminal 3:
+python person.py localhost Luis 1 10
 
 Arguments:
 - localhost → RabbitMQ host
 - Name → unique identifier
-- Speed → movement interval (seconds)
-- Grid size → e.g. 10 for 10x10
+- 1 → movement interval (seconds)
+- 10 → grid size
+
+IMPORTANT:
+At least 2 persons must be running for contacts to occur.
 
 --------------------------------------------------
 
-STEP 4 – VERIFY CONTACT DETECTION
+STEP 5 – RUN GUI
 
-When two users occupy the same position:
+Terminal 4:
 
-Expected output in tracker:
+python contact_gui.py localhost 10
 
-[CONTACT] Ana met Luis at (x, y) at time
-
---------------------------------------------------
-
-STEP 5 – RUN QUERY (CONSOLE)
-
-Open another terminal:
-
-python task3/query.py localhost Ana
-
-Expected output:
-
-Contacts for Ana:
-- Luis
+IMPORTANT:
+The GUI WILL NOT start without both arguments.
 
 --------------------------------------------------
 
-STEP 6 – RUN GUI
+STEP 6 – TEST SYSTEM
 
-Run:
+1. Wait until two people randomly meet (same position)
+2. In GUI:
+   - type a name (e.g. Ana)
+   - click "Search Contacts"
 
-python task3/contact_gui.py
+OR use console:
 
-Features:
-- Visual grid environment
-- Real-time position updates
-- Collision highlighting (red markers)
-- Query input field
-- Contact results display
+python query.py localhost Ana
 
 --------------------------------------------------
 
-STEP 7 – TEST FUNCTIONALITY
+EXPECTED BEHAVIOUR
 
-1. Start tracker
-2. Start at least 2 persons
-3. Wait for collision
-4. Perform query in GUI or console
-
-Expected behavior:
-- Contacts appear after collision
-- Results show in reverse chronological order
-- Positions update continuously
-
---------------------------------------------------
-
-HOW IT WORKS
-
-- Each person publishes their position to RabbitMQ
-- Tracker listens to all updates
-- If two users share the same coordinates at the same time:
-  → A contact event is recorded
-- Contacts are stored per user
-- Queries retrieve contact history from tracker
-- GUI subscribes to updates and displays environment visually
-
---------------------------------------------------
-
-BOUNDARY CONDITIONS
-
-- Grid size is configurable (default 10x10)
-- Users cannot move outside grid boundaries
-- Movement is random (similar to chess king moves)
-
---------------------------------------------------
-
-STOP APPLICATION
-
-- Close GUI
-- Stop all terminals
-- Stop RabbitMQ:
-
-Ctrl + C
+- People move continuously in the grid
+- Positions update in real time
+- When two people collide → contact is recorded
+- Query returns contacts in reverse chronological order
+- GUI displays:
+  - current positions
+  - contact results
+  - environment grid
 
 --------------------------------------------------
 
 COMMON ISSUES
 
-1. Connection error
-- Ensure RabbitMQ is running
-- Use localhost and port 5672
+1. GUI not loading
+→ Run with arguments:
+  python contact_gui.py localhost 10
 
 2. No contacts found
-- Users have not collided yet
-- Wait for overlap in positions
+→ People have not collided yet
+→ Wait longer
 
-3. GUI not updating
-- Ensure tracker is running
-- Ensure persons are active
+3. No movement visible
+→ Ensure tracker.py is running
+→ Ensure person.py processes are running
+
+4. Query returns nothing
+→ Check exact name (case-sensitive)
+
+--------------------------------------------------
+
+STOP APPLICATION
+
+- Close GUI window
+- Stop all terminals (Ctrl + C)
 
 --------------------------------------------------
 
 NOTES
 
-- This system demonstrates asynchronous communication using RabbitMQ
-- Contact tracing is based on real-time positional overlap
-- GUI enhances usability and visualization of system state
+- Contact detection only occurs when positions overlap
+- System runs entirely in memory
+- GUI shows current state and latest query results

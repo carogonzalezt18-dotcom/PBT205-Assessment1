@@ -1,8 +1,8 @@
 PBT205 – Task 2: Trading System (RabbitMQ)
 
 Overview
-This project implements a simple trading system using RabbitMQ as middleware. 
-It simulates an exchange where traders submit BUY and SELL orders for stocks, 
+This project implements a simple trading system using RabbitMQ as middleware.
+It simulates an exchange where traders submit BUY and SELL orders for stocks,
 and the exchange matches orders based on price conditions.
 
 System Components
@@ -21,7 +21,6 @@ Rules:
 - Quantity must be exactly 100
 - Price must be greater than 0
 
-
 2. exchange.py
 The core component of the system. It:
 - Listens to incoming orders from the 'orders' exchange
@@ -35,25 +34,34 @@ Buyer price >= Seller price
 
 Trade price is set to the seller's price.
 
-
 3. tradeGUI.py
-A simple graphical interface that displays:
-- Latest trade price
-- Buyer and seller information
+A graphical interface that displays the latest executed trade:
 - Stock symbol
+- Trade price
+- Buyer and seller
+- Quantity
 
 Usage:
 python tradeGUI.py localhost
 
+Note:
+The GUI only updates when a trade is executed.
+Sending a single order without a matching counter-order will not update the GUI.
+
+4. tradeListener.py
+A console-based listener for executed trades.
+It subscribes to the 'trades' exchange and prints trade details to the terminal.
+
+Usage:
+python tradeListener.py localhost
 
 System Architecture
 
-sendOrder.py → (orders exchange) → exchange.py → (trades exchange) → tradeGUI.py
+sendOrder.py → (orders exchange) → exchange.py → (trades exchange) → tradeGUI.py / tradeListener.py
 
-RabbitMQ is used with fanout exchanges to simulate topics:
+RabbitMQ uses fanout exchanges for:
 - orders
 - trades
-
 
 How to Run
 
@@ -61,41 +69,47 @@ Step 1:
 Start RabbitMQ (Docker must be running)
 
 Step 2:
+Open a terminal and navigate to the task2 folder:
+cd task2
+
+Step 3:
 Open Terminal 1:
 python exchange.py localhost
 
-Step 3:
+Step 4:
 Open Terminal 2:
 python tradeGUI.py localhost
 
-Step 4:
+Optional:
 Open Terminal 3:
-Send orders:
+python tradeListener.py localhost
+
+Step 5:
+Send orders from another terminal:
 
 python sendOrder.py carolina localhost XYZ BUY 100 180
 python sendOrder.py juan localhost XYZ SELL 100 170
 
 Expected Result:
-- Exchange matches the orders
-- Trade is executed
-- GUI updates with latest trade price
-
+- Exchange receives the orders
+- Matching logic is applied
+- Trade is executed if prices match
+- tradeGUI.py updates with the latest trade
+- tradeListener.py prints the trade in the terminal
 
 Features Implemented
 
 - Order validation (side, quantity, price)
-- Order book management
-- Matching logic (BUY vs SELL)
+- In-memory order book
+- BUY/SELL matching logic
 - Trade publishing
-- GUI visualization
+- GUI visualization of latest trade
+- Console-based trade listener
 - Support for multiple stocks
-
 
 Notes
 
-- Only limit orders are supported (no market orders)
-- Quantity is fixed to 100 shares as per assignment
-- Order book is stored in memory (no persistence)
-- GUI shows only the latest trade
-
-
+- Only limit orders are supported
+- Quantity is fixed to 100 shares as required by the assignment
+- Order book is stored in memory only
+- tradeGUI.py displays only the latest executed trade
